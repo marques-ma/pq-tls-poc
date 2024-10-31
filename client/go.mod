@@ -1,4 +1,4 @@
-module tempo/server
+module tempo/client
 
 go 1.23.2
 

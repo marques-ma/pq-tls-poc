@@ -4,21 +4,24 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	// "os/exec"
 	"strings"
 	"sync"
 	"time"
 	"regexp"
-	"tempo/oqsopenssl"
+	"context"
+	"log"
+
+	"github.com/spiffe/go-spiffe/v2/workloadapi"
+	"github.com/marques-ma/oqsopenssl"
 )
 
 func main() {
 
-	// func StartServer(certFile, keyFile, caCertFile string) (*exec.Cmd, error) {
+	// Retrieve crypto material from SPIRE and save to use in openssl.
+	FetchNSave()
 
-	// Step 1: Start OpenSSL server with the certificate and key
-	// cmd := exec.Command("openssl", "s_server", "-accept", "4433", "-state", "-cert", "hybrid_server.crt", "-key", "hybrid_server_key.pem", "-tls1_3", "-Verify", "1", "-CAfile", "../ca/ca_cert.pem")
-	cmd, stdin, stdout, err := oqsopenssl.StartServer("hybrid_server.crt", "hybrid_server_key.pem", "../ca/ca_cert.pem")
+	// Step 1: Start OpenSSL server with the certificate and key extracted in previous step.
+	cmd, stdin, stdout, err := oqsopenssl.StartServer("certificate.pem", "private_key.pem", "../ca/ca_cert.pem")
 	if err != nil {
 		fmt.Println("Error Starting Server:", err)
 		return
@@ -66,7 +69,7 @@ func main() {
 			
 			text, _ := consoleReader.ReadString('\n')
 
-			fmt.Print(time.Now().Format("2006.01.02 15:04:05") + " Server: " + text)
+			fmt.Print(time.Now().Format("2006.01.02 15:04:05") + " You: " + text)
 			text = strings.TrimSpace(text)
 			if text == "exit" {
 				fmt.Println("Exiting...")
@@ -82,3 +85,46 @@ func main() {
 	cmd.Wait()
 }
 
+func FetchNSave() {
+
+// Fetch the X509SVID containing the crypto material (i.e., private key and cert)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	source, err := workloadapi.NewX509Source(ctx, workloadapi.WithClientOptions(workloadapi.WithAddr("unix:///tmp/spire-agent/public/api.sock")))
+	if err != nil {
+		log.Fatalf("Unable to create X509Source: %v", err)
+	}
+	defer source.Close()
+
+	x509SVID, err := source.GetX509SVID()
+	if err != nil {
+		log.Fatalf("Unable to fetch SVID: %v", err)
+	}
+
+	// Retrieve the leaf certificate
+	leafCert := x509SVID.Certificates[0]
+	if len(leafCert.DNSNames) == 0 {
+		log.Fatalf("No DNSNames found in the SVID certificate")
+	}
+
+	// In POC the crypto material is injected in workload cert (last position in DNSNames field) as privateKey||certificate. Extract it.
+	concatenatedString := leafCert.DNSNames[len(leafCert.DNSNames)-1]
+
+	// Decode the private key and certificate
+	result := strings.SplitAfter(concatenatedString, "-----END PRIVATE KEY-----")
+	// fmt.Println("Private key:", result[0])
+	// fmt.Println("Cert:", result[1])
+
+	// Save private key to a file
+	privateKeyPath := "private_key.pem"
+	if err := os.WriteFile(privateKeyPath, []byte(result[0]), 0600); err != nil {
+		log.Fatalf("Failed to write private key: %v", err)
+	}
+
+	// Save certificate to a file
+	certificatePath := "certificate.pem"
+	if err := os.WriteFile(certificatePath, []byte(result[1]), 0600); err != nil {
+		log.Fatalf("Failed to write certificate: %v", err)
+	}
+}
