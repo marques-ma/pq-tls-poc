@@ -1,11 +1,13 @@
 module tempo/client
 
-go 1.23.2
+go 1.23.3
 
 require (
 	github.com/marques-ma/oqsopenssl v0.1.3
 	github.com/spiffe/go-spiffe/v2 v2.4.0
 )
+
+<!-- replace github.com/marques-ma/oqsopenssl v0.1.3 => ../../pqopenssl -->
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect

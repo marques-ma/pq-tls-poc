@@ -15,13 +15,17 @@ import (
 	"github.com/marques-ma/oqsopenssl"
 )
 
+var (
+	caCert = "/home/byron/pq-tls-poc/ca/ca_cert.pem"
+)
+
 func main() {
 
 	// Retrieve crypto material from SPIRE and save to use in openssl.
 	FetchNSave()
 
 	// Step 1: Start OpenSSL server with the certificate and key extracted in previous step.
-	cmd, stdin, stdout, err := oqsopenssl.StartServer("certificate.pem", "private_key.pem", "../ca/ca_cert.pem")
+	cmd, stdin, stdout, err := oqsopenssl.StartServer(4433, "certificate.pem", "private_key.pem", caCert)
 	if err != nil {
 		fmt.Println("Error Starting Server:", err)
 		return

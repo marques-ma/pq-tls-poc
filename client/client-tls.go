@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
+	// "os/exec"
 	"regexp"
 	"strings"
 	"sync"
@@ -15,36 +15,60 @@ import (
 	"github.com/marques-ma/oqsopenssl"
 )
 
-func getServerCN() (string, error) {
+var (
+	caCert = "/home/byron/pq-tls-poc/ca/ca_cert.pem"
+)
+
+func getServerCN(address string) (string, error) {
 	// Use openssl to connect to the server and show the certificates
-	cmd := exec.Command("openssl", "s_client", "-connect", "localhost:4433", "-cert", "certificate.pem", "-key", "private_key.pem", "-tls1_3", "-showcerts", "-CAfile", "../ca/ca_cert.pem", "-msg", "-state")
-
-	// Capture both stdout and stderr
-	var outBuf, errBuf strings.Builder
-	cmd.Stdout = &outBuf
-	cmd.Stderr = &errBuf
-
-	err := cmd.Run()
+	// cmd := exec.Command("openssl", "s_client", "-connect", "localhost:4433", "-cert", "certificate.pem", "-key", "private_key.pem", "-tls1_3", "-showcerts", "-CAfile", "../ca/ca_cert.pem", "-msg", "-state")
+	cmd, stdin, stdout, stderr, err := oqsopenssl.StartClient(address, "certificate.pem", "private_key.pem", caCert)
 	if err != nil {
-		fmt.Printf("Error connecting to server:\n%s\n", errBuf.String())
-		return "", fmt.Errorf("failed to connect to server: %w", err)
+		return "", fmt.Errorf("error starting client: %w", err)
+	}
+	defer cmd.Wait()
+	defer stdin.Close()
+	defer stderr.Close()
+
+	// Read stderr in a separate goroutine
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			fmt.Println("DEBUG STDERR:", scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Println("Error reading stderr:", err)
+		}
+	}()
+
+	// Read from stdout to capture the server's certificate information
+	var cn string
+	scanner := bufio.NewScanner(stdout)
+	re := regexp.MustCompile(`(?i)subject=.*?CN\s*=\s*([^,\s]+)`)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println("DEBUG:", line) // Log each line for inspection
+
+
+		// Look for the CN in the subject field of the certificate
+		if matches := re.FindStringSubmatch(line); len(matches) > 1 {
+			cn = strings.TrimSpace(matches[1])
+			break
+		}
 	}
 
-	// // Log the full output for debugging
-	// fmt.Printf("Server Certificate Output (stdout):\n%s\n", outBuf.String())
-	// fmt.Printf("Debug Information (stderr):\n%s\n", errBuf.String())
+	// Handle any errors encountered during scanning
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("error reading server certificate output: %w", err)
+	}
 
-	// Use only stdout to search for CN, since stderr contains debug info
-	outputStr := outBuf.String()
-
-	// Regex to capture the CN from the output
-	re := regexp.MustCompile(`(?i)subject=.*?CN\s*=\s*([^,\s\n]+)`)
-
-	cnMatches := re.FindStringSubmatch(outputStr)
-	if len(cnMatches) < 2 {
+	// Verify if CN was found
+	if cn == "" {
 		return "", fmt.Errorf("CN not found in the server certificate")
 	}
-	return strings.TrimSpace(cnMatches[1]), nil // Trim any extra spaces
+
+	return cn, nil
 }
 
 func main() {
@@ -58,21 +82,35 @@ func main() {
 	FetchNSave()
 
 	// Step 1: Get the CN from the server's certificate
-	cn, err := getServerCN()
-	if err != nil {
-		fmt.Println("Error getting CN from server certificate:", err)
-		return
-	}
+	// cn, err := getServerCN(address)
+	// if err != nil {
+	// 	fmt.Println("Error getting CN from server certificate:", err)
+	// 	return
+	// }
 
 	// Step 2: Connect to server using OpenSSL s_client
-	cmd, stdin, stdout, err := oqsopenssl.StartClient(address, "certificate.pem", "private_key.pem", "../ca/ca_cert.pem")
+	cmd, stdin, stdout, stderr, err := oqsopenssl.StartClient(address, "certificate.pem", "private_key.pem", caCert)
 	if err != nil {
 		fmt.Println("Error Starting Client:", err)
 		return
 	}
+	defer cmd.Wait()
+	defer stdin.Close()
+	defer stderr.Close()
 
 	reader := bufio.NewReader(stdout)
-	writer := bufio.NewWriter(stdin)
+	// writer := bufio.NewWriter(stdin)
+
+	// Read stderr in a separate goroutine
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			fmt.Println("DEBUG STDERR:", scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Println("Error reading stderr:", err)
+		}
+	}()
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -94,35 +132,23 @@ func main() {
 				fmt.Println("Error reading from server:", err)
 				return
 			}
-			fmt.Print(time.Now().Format("2006.01.02 15:04:05") + " " + cn + " :" + line)
+			fmt.Print(time.Now().Format("2006.01.02 15:04:05") + " " + "cn" + " :" + line)
 		}
 	}()
 
 	// Handle sending messages to the server
 	go func() {
-		defer wg.Done()
-		consoleReader := bufio.NewReader(os.Stdin)
-		for {
-			text, _ := consoleReader.ReadString('\n')
-			fmt.Print(time.Now().Format("2006.01.02 15:04:05") + " You: " + text)
-			text = strings.TrimSpace(text)
-
-			// Handle 'exit' command to close connection
-			if text == "exit" {
-				fmt.Println("Exiting...")
-				cmd.Process.Kill() // Close the OpenSSL process
-				break
-			}
-
-			// Send message to server
-			writer.WriteString(text + "\n")
-			writer.Flush()
+		message := "Hello, Server!\n"
+		_, err := stdin.Write([]byte(message))
+		if err != nil {
+			log.Printf("Failed to write to server: %v", err)
 		}
+		stdin.Close()
 	}()
 
 	wg.Wait()
 
-	cmd.Wait()
+	// cmd.Wait()
 }
 
 func FetchNSave() {
