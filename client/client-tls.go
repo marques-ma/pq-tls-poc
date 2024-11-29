@@ -12,17 +12,18 @@ import (
 	"context"
 	"log"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
-	"github.com/marques-ma/oqsopenssl"
+	// "github.com/marques-ma/oqsopenssl"
+	oqsopenssl "github.com/marques-ma/pq-openssl-3.x"
 )
 
 var (
-	caCert = "/home/byron/pq-tls-poc/ca/ca_cert.pem"
+	caCert = "/home/deb1280/pq-tls-poc/ca/ca_cert.pem"
 )
 
 func getServerCN(address string) (string, error) {
 	// Use openssl to connect to the server and show the certificates
 	// cmd := exec.Command("openssl", "s_client", "-connect", "localhost:4433", "-cert", "certificate.pem", "-key", "private_key.pem", "-tls1_3", "-showcerts", "-CAfile", "../ca/ca_cert.pem", "-msg", "-state")
-	cmd, stdin, stdout, stderr, err := oqsopenssl.StartClient(address, "certificate.pem", "private_key.pem", caCert)
+	cmd, stdin, stdout, stderr, err := oqsopenssl.StartClient(address, "certificate.pem", "private_key.pem", caCert,"p521_kyber1024")
 	if err != nil {
 		return "", fmt.Errorf("error starting client: %w", err)
 	}
@@ -89,7 +90,7 @@ func main() {
 	// }
 
 	// Step 2: Connect to server using OpenSSL s_client
-	cmd, stdin, stdout, stderr, err := oqsopenssl.StartClient(address, "certificate.pem", "private_key.pem", caCert)
+	cmd, stdin, stdout, stderr, err := oqsopenssl.StartClient(address, "certificate.pem", "private_key.pem", caCert,"p521_kyber1024")
 	if err != nil {
 		fmt.Println("Error Starting Client:", err)
 		return

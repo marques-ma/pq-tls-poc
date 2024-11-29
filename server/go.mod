@@ -3,11 +3,9 @@ module tempo/server
 go 1.23.3
 
 require (
-	github.com/marques-ma/oqsopenssl v0.1.3
+	github.com/marques-ma/pq-openssl-3.x v1.2.0
 	github.com/spiffe/go-spiffe/v2 v2.4.0
 )
-
-<!-- replace github.com/marques-ma/oqsopenssl v0.1.3 => ../../pqopenssl -->
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect

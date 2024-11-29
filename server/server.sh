@@ -1,0 +1,3 @@
+#!/bin/bash
+
+docker run --rm --network host -v /home/deb1280/pq-tls-poc:/home/deb1280/pq-tls-poc -it openquantumsafe/curl sh -c "openssl s_server -accept 4433 -state -cert /home/deb1280/pq-tls-poc/server/certificate.pem -key /home/deb1280/pq-tls-poc/server/private_key.pem -tls1_3 -Verify 1 -CAfile /home/deb1280/pq-tls-poc/ca/ca_cert.pem -debug  -ign_eof -provider oqsprovider -curves p521_kyber1024"

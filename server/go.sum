@@ -6,6 +6,10 @@ github.com/go-jose/go-jose/v4 v4.0.4 h1:VsjPI33J0SB9vQM6PLmNjoHqMQNGPiZ0rHL7Ni7Q
 github.com/go-jose/go-jose/v4 v4.0.4/go.mod h1:NKb5HO1EZccyMpiZNbdUw/14tiXNyUJh188dfnMCAfc=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
+github.com/marques-ma/pq-openssl-3.x v1.1.0 h1:yjrGlZ2gWj+1MK8kzlAOf3HmquykxD24Ymclrr06BMY=
+github.com/marques-ma/pq-openssl-3.x v1.1.0/go.mod h1:kpJ6hhbVOdMyjxwRyEW59WdXYLXM+VoKvyhI0NH63Nc=
+github.com/marques-ma/pq-openssl-3.x v1.2.0 h1:nCGIt/c51n2Ev3w111uanhDBsojX+ViNfztcr3I1Wog=
+github.com/marques-ma/pq-openssl-3.x v1.2.0/go.mod h1:kpJ6hhbVOdMyjxwRyEW59WdXYLXM+VoKvyhI0NH63Nc=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/spiffe/go-spiffe/v2 v2.4.0 h1:j/FynG7hi2azrBG5cvjRcnQ4sux/VNj8FAVc99Fl66c=

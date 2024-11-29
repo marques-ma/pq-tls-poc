@@ -12,11 +12,12 @@ import (
 	"log"
 
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
-	"github.com/marques-ma/oqsopenssl"
+	// "github.com/marques-ma/oqsopenssl"
+	oqsopenssl "github.com/marques-ma/pq-openssl-3.x"
 )
 
 var (
-	caCert = "/home/byron/pq-tls-poc/ca/ca_cert.pem"
+	caCert = "/home/deb1280/pq-tls-poc/ca/ca_cert.pem"
 )
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 	FetchNSave()
 
 	// Step 1: Start OpenSSL server with the certificate and key extracted in previous step.
-	cmd, stdin, stdout, err := oqsopenssl.StartServer(4433, "certificate.pem", "private_key.pem", caCert)
+	cmd, stdin, stdout, err := oqsopenssl.StartServer(4433, "certificate.pem", "private_key.pem", caCert, "p521_kyber1024")
 	if err != nil {
 		fmt.Println("Error Starting Server:", err)
 		return
