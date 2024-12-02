@@ -12,12 +12,11 @@ import (
 	"log"
 
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
-	// "github.com/marques-ma/oqsopenssl"
-	oqsopenssl "github.com/marques-ma/pq-openssl-3.x"
+	"github.com/marques-ma/pq-openssl-3.x"
 )
 
 var (
-	caCert = "/home/deb1280/pq-tls-poc/ca/ca_cert.pem"
+	caCert = "/home/byron/poc-v0/pq-tls-poc/ca/ca_cert.pem"
 )
 
 func main() {

@@ -17,60 +17,9 @@ import (
 )
 
 var (
-	caCert = "/home/deb1280/pq-tls-poc/ca/ca_cert.pem"
+	caCert = "/home/byron/poc-v0/pq-tls-poc/ca/ca_cert.pem"
 )
 
-func getServerCN(address string) (string, error) {
-	// Use openssl to connect to the server and show the certificates
-	// cmd := exec.Command("openssl", "s_client", "-connect", "localhost:4433", "-cert", "certificate.pem", "-key", "private_key.pem", "-tls1_3", "-showcerts", "-CAfile", "../ca/ca_cert.pem", "-msg", "-state")
-	cmd, stdin, stdout, stderr, err := oqsopenssl.StartClient(address, "certificate.pem", "private_key.pem", caCert,"p521_kyber1024")
-	if err != nil {
-		return "", fmt.Errorf("error starting client: %w", err)
-	}
-	defer cmd.Wait()
-	defer stdin.Close()
-	defer stderr.Close()
-
-	// Read stderr in a separate goroutine
-	go func() {
-		scanner := bufio.NewScanner(stderr)
-		for scanner.Scan() {
-			fmt.Println("DEBUG STDERR:", scanner.Text())
-		}
-		if err := scanner.Err(); err != nil {
-			fmt.Println("Error reading stderr:", err)
-		}
-	}()
-
-	// Read from stdout to capture the server's certificate information
-	var cn string
-	scanner := bufio.NewScanner(stdout)
-	re := regexp.MustCompile(`(?i)subject=.*?CN\s*=\s*([^,\s]+)`)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		fmt.Println("DEBUG:", line) // Log each line for inspection
-
-
-		// Look for the CN in the subject field of the certificate
-		if matches := re.FindStringSubmatch(line); len(matches) > 1 {
-			cn = strings.TrimSpace(matches[1])
-			break
-		}
-	}
-
-	// Handle any errors encountered during scanning
-	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("error reading server certificate output: %w", err)
-	}
-
-	// Verify if CN was found
-	if cn == "" {
-		return "", fmt.Errorf("CN not found in the server certificate")
-	}
-
-	return cn, nil
-}
 
 func main() {
 
@@ -195,4 +144,57 @@ func FetchNSave() {
 	if err := os.WriteFile(certificatePath, []byte(result[1]), 0600); err != nil {
 		log.Fatalf("Failed to write certificate: %v", err)
 	}
+}
+
+
+func getServerCN(address string) (string, error) {
+	// Use openssl to connect to the server and show the certificates
+	// cmd := exec.Command("openssl", "s_client", "-connect", "localhost:4433", "-cert", "certificate.pem", "-key", "private_key.pem", "-tls1_3", "-showcerts", "-CAfile", "../ca/ca_cert.pem", "-msg", "-state")
+	cmd, stdin, stdout, stderr, err := oqsopenssl.StartClient(address, "certificate.pem", "private_key.pem", caCert,"p521_kyber1024")
+	if err != nil {
+		return "", fmt.Errorf("error starting client: %w", err)
+	}
+	defer cmd.Wait()
+	defer stdin.Close()
+	defer stderr.Close()
+
+	// Read stderr in a separate goroutine
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			fmt.Println("DEBUG STDERR:", scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Println("Error reading stderr:", err)
+		}
+	}()
+
+	// Read from stdout to capture the server's certificate information
+	var cn string
+	scanner := bufio.NewScanner(stdout)
+	re := regexp.MustCompile(`(?i)subject=.*?CN\s*=\s*([^,\s]+)`)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println("DEBUG:", line) // Log each line for inspection
+
+
+		// Look for the CN in the subject field of the certificate
+		if matches := re.FindStringSubmatch(line); len(matches) > 1 {
+			cn = strings.TrimSpace(matches[1])
+			break
+		}
+	}
+
+	// Handle any errors encountered during scanning
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("error reading server certificate output: %w", err)
+	}
+
+	// Verify if CN was found
+	if cn == "" {
+		return "", fmt.Errorf("CN not found in the server certificate")
+	}
+
+	return cn, nil
 }
